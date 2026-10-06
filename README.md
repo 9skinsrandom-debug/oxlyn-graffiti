@@ -1,79 +1,153 @@
 # oxlyn-graffiti
 
-Freehand graffiti system for QBCore and FiveM. This resource allows players to spray directly onto world surfaces using a spray can item, render all graffiti in real time, stream nearby graffiti by chunk, save them to the database, and remove them with a graffiti remover item.
+Freehand graffiti system for QBCore and FiveM.
 
 Features
-- Freehand painting with mouse hold
-- Raycasted spray points on suitable world surfaces
-- Spray can prop and animation
-- Particle-like spray effect using line rendering and debug output
-- Persistent graffiti saved via oxmysql
-- Batch syncing and chunk-based streaming for multiplayer
-- Gradual removal with `graffiti_remover`
-- Configurable render distance, cooldowns, limits, and debug mode
+- spray can item usage
+- real-time freehand drawing with LMB and wall raycast
+- support for multiple color spray cans
+- world-space spray line interpolation for smooth curves
+- database persistence with oxmysql
+- distance-based chunk streaming for nearby graffiti
+- removal item support with `graffiti_remover`
+- configurable render distance and debug output
 
 Installation
-1. Copy the resource folder into your server resources directory.
-2. Add the resource to your server config:
-   ensure oxlyn-graffiti
-3. Import `sql/graffiti.sql` into your database.
-4. Ensure `oxmysql` and `qb-core` are running.
-5. Add the following items to your QBCore shared items file:
-   - `spraycan_black`
-   - `spraycan_white`
-   - `spraycan_red`
-   - `spraycan_blue`
-   - `spraycan_green`
-   - `spraycan_purple`
-   - `graffiti_remover`
+1. Place the folder into your `resources` directory.
+2. Add to your server config:
+   `ensure oxlyn-graffiti`
+3. Import `sql/graffiti.sql` to your database.
+4. Ensure `qb-core` and `oxmysql` are running.
+5. Add items to your shared items list.
 
 Recommended items
 ```lua
-['spraycan_black'] = { label = 'Black Spray Can', weight = 0.5, type = 'item', image = 'spraycan_black.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'A can of black spray paint.' },
-['spraycan_white'] = { label = 'White Spray Can', weight = 0.5, type = 'item', image = 'spraycan_white.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'A can of white spray paint.' },
-['spraycan_red'] = { label = 'Red Spray Can', weight = 0.5, type = 'item', image = 'spraycan_red.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'A can of red spray paint.' },
-['spraycan_blue'] = { label = 'Blue Spray Can', weight = 0.5, type = 'item', image = 'spraycan_blue.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'A can of blue spray paint.' },
-['spraycan_green'] = { label = 'Green Spray Can', weight = 0.5, type = 'item', image = 'spraycan_green.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'A can of green spray paint.' },
-['spraycan_purple'] = { label = 'Purple Spray Can', weight = 0.5, type = 'item', image = 'spraycan_purple.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'A can of purple spray paint.' },
-['graffiti_remover'] = { label = 'Graffiti Remover', weight = 0.5, type = 'item', image = 'graffiti_remover.png', unique = false, useable = false, shouldClose = true, combinable = nil, description = 'Used to remove existing graffiti.' },
+['spraycan'] = {
+    name = 'spraycan',
+    label = 'Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'A generic spray can.'
+},
+['spraycan_black'] = {
+    name = 'spraycan_black',
+    label = 'Black Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan_black.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'Black spray paint.'
+},
+['spraycan_white'] = {
+    name = 'spraycan_white',
+    label = 'White Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan_white.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'White spray paint.'
+},
+['spraycan_red'] = {
+    name = 'spraycan_red',
+    label = 'Red Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan_red.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'Red spray paint.'
+},
+['spraycan_blue'] = {
+    name = 'spraycan_blue',
+    label = 'Blue Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan_blue.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'Blue spray paint.'
+},
+['spraycan_green'] = {
+    name = 'spraycan_green',
+    label = 'Green Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan_green.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'Green spray paint.'
+},
+['spraycan_purple'] = {
+    name = 'spraycan_purple',
+    label = 'Purple Spray Can',
+    weight = 0.5,
+    type = 'item',
+    image = 'spraycan_purple.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'Purple spray paint.'
+},
+['graffiti_remover'] = {
+    name = 'graffiti_remover',
+    label = 'Graffiti Remover',
+    weight = 0.5,
+    type = 'item',
+    image = 'graffiti_remover.png',
+    unique = false,
+    useable = true,
+    shouldClose = true,
+    combinable = nil,
+    description = 'Removes nearby graffiti.'
+}
 ```
 
-How it works
-- The player uses a spray can item.
-- When holding the left mouse button near a wall or suitable surface, a raycast checks the exact hit point and normal.
-- Each spray movement adds a point to a local stroke.
-- Strokes are interpolated and optimized before saving.
-- When the player releases the mouse, the stroke is sent to the server and saved in the database.
-- Existing graffiti around the player are streamed via chunk-based loading.
-
-Notes
-- This resource is intentionally designed around the QBCore inventory and oxmysql stack.
-- The actual paint effect is represented as world lines with proper point interpolation and surface alignment.
-- The system uses a large amount of validation on the server side to reject malformed or oversized graffiti payloads.
+How the paint system works
+- Hold left mouse button while aiming at a wall or suitable surface.
+- A raycast checks the exact hit point and surface normal.
+- Each movement adds a point to an interpolated stroke.
+- Releasing the mouse sends the stroke to the server.
+- The server validates the data and writes it to the database.
+- Nearby graffiti are synced by chunk and render distance.
 
 Configuration
-The main config is in `config.lua` and includes:
-- render distance
-- chunk size
-- spray distance
-- line thickness
-- spray colors
-- cooldowns
-- max painting limits
-- database table names
-- debug mode
+You can adjust the main variables in `config.lua`:
+- `RenderDistance`
+- `ChunkSize`
+- `SprayDistance`
+- `MaxPaintDistance`
+- `LineThickness`
+- `MinPointDistance`
+- `MaxStrokePoints`
+- `MaxGraffitiPerPlayer`
+- `MaxGraffitiArea`
+- `Debug`
 
 Debug mode
-Set:
 ```lua
 Config.Debug = true
 ```
-This will print backend info and draw the raycast hit point and normal in 3D.
+This will draw the raycast hit point and normal for troubleshooting.
 
-Limitations
-- This is a real-time freehand graffiti resource and does not use a text editor or preset image system.
-- The visible paint is drawn as a line-based effect optimized for GTA V performance and network compatibility.
-- Additional polish such as improved prop models or realistic particle systems can be layered later if desired.
-
-Authoring note
-This resource is designed around the request for a real-feeling spray system: the player paints on surfaces in the world with their mouse, each stroke is visually continuous, and the final artwork persists across server restarts.
+Notes
+- This resource uses a realistic paint line approach rather than a text-to-sign generator.
+- The visual effect is a world-space line drawn between interpolated points and optimized for network use.
+- All graffiti are stored in the database and streamed only around the player.
